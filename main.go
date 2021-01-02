@@ -188,6 +188,8 @@ func cleanupOldEntries() {
 
 func main() {
 	flag.Parse()
+	rand.Seed(time.Now().Unix())
+
 	sqlDb, err := sql.Open("sqlite3", *sqlitePath)
 	if err != nil {
 		log.WithFields(log.Fields{
