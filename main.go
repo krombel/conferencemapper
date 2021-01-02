@@ -3,8 +3,8 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
-	"html"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -15,7 +15,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var sqlitePath = "conferencemapper.db"
+var sqlitePath = flag.String("dbPath", "conferencemapper.db", "Path to SQLite Database")
 
 //var sqlDb *sql.DB
 
@@ -36,7 +36,7 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 		"paramID":    paramID,
 	}).Info("mapper(conference, id)")
 
-	sqlDb, err := sql.Open("sqlite3", sqlitePath)
+	sqlDb, err := sql.Open("sqlite3", *sqlitePath)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -47,25 +47,26 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 
 	if paramID != "" {
 		confId, err := strconv.ParseInt(paramID, 10, 0)
-		result.ConferenceID = int(confId)
-
 		if err != nil {
 			log.WithFields(log.Fields{
 				"paramID": paramID,
-				"confID":  result.ConferenceID,
+				"confID":  confId,
 			}).Error("Parsing of confID failed")
 		}
-		// conference given
+
+		result.ConferenceID = int(confId)
 		result.ConferenceName = getConfName(sqlDb, result.ConferenceID)
 		log.WithFields(log.Fields{
 			"confID":   result.ConferenceID,
 			"confName": result.ConferenceName,
 		}).Debug("Parsed Conf name")
 	}
-	if conference != "" {
+
+	// only set new conference name if not set via conf id
+	if conference != "" && result.ConferenceName == "" {
 		// conference given
-		result.ConferenceName = conference
 		result.ConferenceID = getConfId(sqlDb, conference)
+		result.ConferenceName = conference
 	}
 
 	updateConferenceUsage(sqlDb, result.ConferenceID)
@@ -147,6 +148,7 @@ func insertConference(db *sql.DB, confName string, confId int) bool {
 	}
 	return true
 }
+
 func updateConferenceUsage(db *sql.DB, confId int) bool {
 	_, err := db.Exec("UPDATE conferences set lastUsed = (strftime('%s','now')) WHERE conferenceId = ?", confId)
 	log.WithFields(log.Fields{
@@ -162,7 +164,9 @@ func updateConferenceUsage(db *sql.DB, confId int) bool {
 func cleanupOldEntries() {
 	for {
 		time.Sleep(24 * time.Hour)
-		sqlDb, err := sql.Open("sqlite3", sqlitePath)
+		log.Info("Run cleanup of old entries")
+
+		sqlDb, err := sql.Open("sqlite3", *sqlitePath)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"err": err,
@@ -183,7 +187,8 @@ func cleanupOldEntries() {
 }
 
 func main() {
-	sqlDb, err := sql.Open("sqlite3", sqlitePath)
+	flag.Parse()
+	sqlDb, err := sql.Open("sqlite3", *sqlitePath)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
@@ -205,7 +210,7 @@ func main() {
 	sqlDb.Close()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Conference Mapper (for jitsi) is running %s", html.EscapeString(r.URL.Path))
+		fmt.Fprintf(w, "Conference Mapper (for jitsi) is running")
 	})
 
 	http.HandleFunc("/conferenceMapper", mapper)
