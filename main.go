@@ -88,7 +88,7 @@ func getConfId(db *sql.DB, confName string) int {
 				log.WithFields(log.Fields{
 					"confName": confName,
 					"confId":   result,
-				}).Info("getConfId(confName) store random confID")
+				}).Debug("getConfId(confName) store random confID")
 				if insertConference(db, confName, result) {
 					// insertion worked; return it
 					return result
@@ -151,7 +151,7 @@ func updateConferenceUsage(db *sql.DB, confId int) bool {
 	log.WithFields(log.Fields{
 		"confId": confId,
 		"err":    err,
-	}).Info("updateConferenceUsage()")
+	}).Debug("updateConferenceUsage()")
 	if err != nil {
 		return false
 	}
@@ -167,11 +167,10 @@ func main() {
 	}
 
 	stmt, err := sqlDb.Prepare(`CREATE TABLE IF NOT EXISTS conferences (
-		"id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
-		"created" INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')),
-		"lastUsed" INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')),
+		"conferenceId" INTEGER(6) NOT NULL PRIMARY KEY,
 		"conferenceName" TEXT NOT NULL UNIQUE,
-		"conferenceId" INTEGER(6) NOT NULL UNIQUE
+		"created" INTEGER(4) NOT NULL DEFAULT (strftime('%s','now')),
+		"lastUsed" INTEGER(4) NOT NULL DEFAULT (strftime('%s','now'))
 	)`)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -187,5 +186,6 @@ func main() {
 
 	http.HandleFunc("/conferenceMapper", mapper)
 
+	log.Info("Listen on 8001")
 	log.Fatal(http.ListenAndServe(":8001", nil))
 }
