@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -156,6 +157,29 @@ func updateConferenceUsage(db *sql.DB, confId int) bool {
 		return false
 	}
 	return true
+}
+
+func cleanupOldEntries() {
+	for {
+		time.Sleep(24 * time.Hour)
+		sqlDb, err := sql.Open("sqlite3", sqlitePath)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"err": err,
+			}).Error("cleanupOldEntries: Connect to database")
+			return
+		}
+
+		oldTime := time.Now().Add(24 * time.Hour * 365).Unix()
+		_, err = sqlDb.Exec("DELETE FROM conferences WHERE lastUsed < ?", oldTime)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"err": err,
+			}).Error("cleanupOldEntries: Run Cleanup")
+			return
+		}
+		sqlDb.Close()
+	}
 }
 
 func main() {
