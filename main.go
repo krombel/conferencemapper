@@ -20,8 +20,8 @@ var sqlitePath = flag.String("dbPath", "conferencemapper.db", "Path to SQLite Da
 //var sqlDb *sql.DB
 
 type ConferenceMapperResult struct {
-	ConferenceID   int
-	ConferenceName string
+	ConferenceID   int    `json:"id"`
+	ConferenceName string `json:"conference"`
 }
 
 func mapper(w http.ResponseWriter, r *http.Request) {
