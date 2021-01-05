@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -15,7 +16,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var sqlitePath = flag.String("dbPath", "conferencemapper.db", "Path to SQLite Database")
+var (
+	sqlitePath = flag.String("dbPath", "conferencemapper.db", "Path to SQLite Database")
+	xDigitIDs  = flag.Int("xDigitIDs", 7, "Number of digits for new random conference IDs")
+)
 
 //var sqlDb *sql.DB
 
@@ -86,7 +90,7 @@ func getConfId(db *sql.DB, confName string) int {
 		if err == sql.ErrNoRows {
 			// generate new ID and return that
 			for {
-				result = rand.Intn(999999-100000) + 100000
+				result = rand.Intn(int(math.Pow10(*xDigitIDs))-1-int(math.Pow10(*xDigitIDs-1))) + int(math.Pow10(*xDigitIDs-1))
 				log.WithFields(log.Fields{
 					"confName": confName,
 					"confId":   result,
