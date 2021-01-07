@@ -8,7 +8,9 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -68,9 +70,11 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 
 	// only set new conference name if not set via conf id
 	if conference != "" && result.ConferenceName == "" {
-		// conference given
-		result.ConferenceID = getConfId(sqlDb, conference)
-		result.ConferenceName = conference
+		// sanitize <roomname>@conference.example.com
+		parts := strings.Split(conference, "@")
+		room := strings.Join(parts[0:len(parts)-1], "@")
+		result.ConferenceName = url.QueryEscape(room) + "@" + parts[len(parts)-1]
+		result.ConferenceID = getConfId(sqlDb, result.ConferenceName)
 	}
 
 	updateConferenceUsage(sqlDb, result.ConferenceID)
