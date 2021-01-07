@@ -121,7 +121,7 @@ func getConfName(db *sql.DB, confId int) string {
 			"confId": confId,
 			"err":    err,
 		}).Error("Could not query conf name from db")
-		return ""
+		return "false"
 	}
 	return result
 }
