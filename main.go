@@ -61,7 +61,7 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 		}
 
 		result.ConferenceID = int(confId)
-		result.ConferenceName = getConfName(sqlDb, result.ConferenceID)
+		result.ConferenceName = strings.ToLower(getConfName(sqlDb, result.ConferenceID))
 		log.WithFields(log.Fields{
 			"confID":   result.ConferenceID,
 			"confName": result.ConferenceName,
@@ -72,7 +72,7 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 	if conference != "" && result.ConferenceName == "" {
 		// sanitize <roomname>@conference.example.com
 		parts := strings.Split(conference, "@")
-		room := strings.Join(parts[0:len(parts)-1], "@")
+		room := strings.ToLower(strings.Join(parts[0:len(parts)-1], "@"))
 		result.ConferenceName = url.QueryEscape(room) + "@" + parts[len(parts)-1]
 		result.ConferenceID = getConfId(sqlDb, result.ConferenceName)
 	}
