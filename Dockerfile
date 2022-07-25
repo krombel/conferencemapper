@@ -1,15 +1,17 @@
 # builder
-FROM golang:1.15-alpine AS builder
-RUN apk --no-cache add gcc musl-dev
-RUN mkdir /app
-ADD . /app
+FROM golang:1.18.4-alpine AS builder
+RUN apk add --no-cache gcc musl-dev
 WORKDIR /app
-
+ENV CGO_ENABLED=1
+COPY ./go.mod ./
+COPY ./go.sum ./
 RUN go mod download
+RUN go mod verify
+COPY ./main.go ./main.go
 RUN go build -o main .
 
 # final image
-FROM alpine
+FROM alpine:3.16.1
 RUN mkdir -p /app/data
 WORKDIR /app
 COPY --from=builder /app/main .
