@@ -172,10 +172,7 @@ func updateConferenceUsage(db *sql.DB, confId int) bool {
 		"confId": confId,
 		"err":    err,
 	}).Debug("updateConferenceUsage()")
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func cleanupOldEntries() {
