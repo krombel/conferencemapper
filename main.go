@@ -32,7 +32,7 @@ type ConferenceMapperResult struct {
 
 func mapper(w http.ResponseWriter, r *http.Request) {
 	result := ConferenceMapperResult{}
-	defer json.NewEncoder(w).Encode(&result)
+	defer sendResponse(w, result)
 
 	conference := r.URL.Query().Get("conference")
 	paramID := r.URL.Query().Get("id")
@@ -78,10 +78,19 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updateConferenceUsage(sqlDb, result.ConferenceID)
+}
+
+func sendResponse(w http.ResponseWriter, result ConferenceMapperResult) {
+	if err := json.NewEncoder(w).Encode(&result); err != nil {
+		log.WithFields(log.Fields{
+			"result": result,
+			"error":  err,
+		}).Error("Encoding of response failed")
+	}
 
 	log.WithFields(log.Fields{
 		"result": result,
-	}).Info("mapper return")
+	}).Info("sendResponse()")
 }
 
 func getConfId(db *sql.DB, confName string) int {
