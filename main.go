@@ -32,7 +32,7 @@ type ConferenceMapperResult struct {
 
 func mapper(w http.ResponseWriter, r *http.Request) {
 	result := ConferenceMapperResult{}
-	defer sendResponse(w, result)
+	defer sendResponse(w, &result)
 
 	conference := r.URL.Query().Get("conference")
 	// for log only
@@ -85,7 +85,7 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 	updateConferenceUsage(sqlDb, result.ConferenceID)
 }
 
-func sendResponse(w http.ResponseWriter, result ConferenceMapperResult) {
+func sendResponse(w http.ResponseWriter, result *ConferenceMapperResult) {
 	if err := json.NewEncoder(w).Encode(&result); err != nil {
 		log.WithFields(log.Fields{
 			"result": result,
