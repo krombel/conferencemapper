@@ -220,9 +220,14 @@ func main() {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
-		}).Fatal("main: Create db statement")
+		}).Fatal("main: Create db statement (Prepare)")
 	}
-	stmt.Exec()
+	_, err = stmt.Exec()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Fatal("main: Create db statement (Execute)")
+	}
 	sqlDb.Close()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
