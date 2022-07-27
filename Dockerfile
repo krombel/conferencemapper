@@ -1,5 +1,5 @@
 # builder
-FROM golang:1.15-alpine AS builder
+FROM golang:1.18.4-alpine AS builder
 RUN apk --no-cache add gcc musl-dev
 RUN mkdir /app
 ADD . /app
