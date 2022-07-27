@@ -230,6 +230,8 @@ func main() {
 	}
 	sqlDb.Close()
 
+	go cleanupOldEntries()
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Conference Mapper (for jitsi) is running")
 	})
