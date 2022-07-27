@@ -35,11 +35,25 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 	defer sendResponse(w, result)
 
 	conference := r.URL.Query().Get("conference")
+	// for log only
+	conferenceEscaped := url.QueryEscape(conference)
+
 	paramID := r.URL.Query().Get("id")
+	if paramID != "" {
+		confId, err := strconv.ParseInt(paramID, 10, 0)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"paramID": paramID,
+				"confID":  confId,
+			}).Error("Parsing of confID failed")
+			return
+		}
+		result.ConferenceID = int(confId)
+	}
 
 	log.WithFields(log.Fields{
-		"conference": conference,
-		"paramID":    paramID,
+		"conference":   conferenceEscaped,
+		"ConferenceID": result.ConferenceID,
 	}).Info("mapper(conference, id)")
 
 	sqlDb, err := sql.Open("sqlite3", *sqlitePath)
@@ -51,16 +65,7 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 	}
 	defer sqlDb.Close()
 
-	if paramID != "" {
-		confId, err := strconv.ParseInt(paramID, 10, 0)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"paramID": paramID,
-				"confID":  confId,
-			}).Error("Parsing of confID failed")
-		}
-
-		result.ConferenceID = int(confId)
+	if result.ConferenceID > 0 {
 		result.ConferenceName = strings.ToLower(getConfName(sqlDb, result.ConferenceID))
 		log.WithFields(log.Fields{
 			"confID":   result.ConferenceID,
