@@ -11,7 +11,7 @@ COPY ./main.go ./main.go
 RUN go build -o main .
 
 # final image
-FROM alpine:3.16.1
+FROM alpine:3.16.2
 RUN mkdir -p /app/data
 WORKDIR /app
 COPY --from=builder /app/main .
