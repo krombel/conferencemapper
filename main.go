@@ -23,8 +23,7 @@ var (
 	xDigitIDs  = flag.Int("xDigitIDs", 7, "Number of digits for new random conference IDs")
 )
 
-//var sqlDb *sql.DB
-
+// var sqlDb *sql.DB
 type ConferenceMapperResult struct {
 	ConferenceID   int    `json:"id"`
 	ConferenceName string `json:"conference"`
@@ -207,7 +206,6 @@ func cleanupOldEntries() {
 
 func main() {
 	flag.Parse()
-	rand.Seed(time.Now().Unix())
 
 	sqlDb, err := sql.Open("sqlite3", *sqlitePath)
 	if err != nil {

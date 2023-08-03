@@ -12,6 +12,11 @@ RUN go build -o main .
 
 # final image
 FROM alpine:3.18.2
+
+LABEL org.opencontainers.image.source=https://github.com/krombel/conferencemapper
+LABEL org.opencontainers.image.description="Jitsi Conferencemapper"
+LABEL org.opencontainers.image.licenses=Apache-2.0
+
 RUN mkdir -p /app/data
 WORKDIR /app
 COPY --from=builder /app/main .
