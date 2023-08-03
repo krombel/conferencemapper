@@ -10,23 +10,29 @@ on:
 jobs: # Docs: <https://git.io/JvxXE>
   gitleaks:
     name: Gitleaks
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with: {fetch-depth: 0}
 
-      - uses: gacts/gitleaks@v1 # Action page: <https://github.com/zricethezav/gitleaks-action>
+      - uses: gitleaks/gitleaks-action@v2 # Action page: <https://github.com/gitleaks/gitleaks-action>
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   golangci-lint:
     name: Golang-CI (lint)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with: {fetch-depth: 0}
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+          cache: false
 
       - name: Run linter
         uses: golangci/golangci-lint-action@v3.6.0 # Action page: <https://github.com/golangci/golangci-lint-action>
         with:
-          version: v1.42 # without patch version
+          version: v1.53 # without patch version
           only-new-issues: false # show only new issues if it's a pull request
           args: --timeout 4m # the default of 1m didn't suffice occasionally
