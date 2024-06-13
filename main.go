@@ -192,7 +192,7 @@ func cleanupOldEntries() {
 			return
 		}
 
-		oldTime := time.Now().Add(24 * time.Hour * 365).Unix()
+		oldTime := time.Now().Add(-24 * time.Hour * 365).Unix()
 		_, err = sqlDb.Exec("DELETE FROM conferences WHERE lastUsed < ?", oldTime)
 		if err != nil {
 			log.WithFields(log.Fields{
