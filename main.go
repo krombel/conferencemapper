@@ -39,7 +39,7 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 
 	paramID := r.URL.Query().Get("id")
 	if paramID != "" {
-		confId, err := strconv.ParseInt(paramID, 10, 0)
+		confId, err := strconv.Atoi(paramID)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"paramID": paramID,
@@ -47,7 +47,7 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 			}).Error("Parsing of confID failed")
 			return
 		}
-		result.ConferenceID = int(confId)
+		result.ConferenceID = confId
 	}
 
 	log.WithFields(log.Fields{
