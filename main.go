@@ -25,8 +25,15 @@ var (
 
 // var sqlDb *sql.DB
 type ConferenceMapperResult struct {
-	ConferenceID   int    `json:"id"`
+	ConferenceID   string `json:"id"` // PIN with potentially leading zeroes
+	conferenceID   int    `json:"-"`  // just for internal use
 	ConferenceName string `json:"conference"`
+}
+
+func (r *ConferenceMapperResult) SetID(id int) {
+	r.conferenceID = id
+	// store string of confID with leading zeroes
+	r.ConferenceID = fmt.Sprintf("%0"+strconv.Itoa(*xDigitIDs)+"d", id)
 }
 
 func mapper(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +54,7 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 			}).Error("Parsing of confID failed")
 			return
 		}
-		result.ConferenceID = confId
+		result.SetID(confId)
 	}
 
 	log.WithFields(log.Fields{
@@ -64,8 +71,8 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 	}
 	defer sqlDb.Close()
 
-	if result.ConferenceID > 0 {
-		result.ConferenceName = strings.ToLower(getConfName(sqlDb, result.ConferenceID))
+	if result.ConferenceID != "" {
+		result.ConferenceName = strings.ToLower(getConfName(sqlDb, result.conferenceID))
 		log.WithFields(log.Fields{
 			"confID":   result.ConferenceID,
 			"confName": result.ConferenceName,
@@ -74,14 +81,11 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 
 	// only set new conference name if not set via conf id
 	if conference != "" && result.ConferenceName == "" {
-		// sanitize <roomname>@conference.example.com
-		parts := strings.Split(conference, "@")
-		room := strings.ToLower(strings.Join(parts[0:len(parts)-1], "@"))
-		result.ConferenceName = url.QueryEscape(room) + "@" + parts[len(parts)-1]
-		result.ConferenceID = getConfId(sqlDb, result.ConferenceName)
+		result.ConferenceName = sanitizeConferenceName(conference)
+		result.SetID(getConfId(sqlDb, result.ConferenceName))
 	}
 
-	updateConferenceUsage(sqlDb, result.ConferenceID)
+	updateConferenceUsage(sqlDb, result.conferenceID)
 }
 
 func sendResponse(w http.ResponseWriter, result *ConferenceMapperResult) {
@@ -93,7 +97,7 @@ func sendResponse(w http.ResponseWriter, result *ConferenceMapperResult) {
 	}
 
 	log.WithFields(log.Fields{
-		"result": result,
+		"result": *result,
 	}).Info("sendResponse()")
 }
 
@@ -125,6 +129,13 @@ func getConfId(db *sql.DB, confName string) int {
 		return -1
 	}
 	return result
+}
+
+// sanitizeConferenceName takes roomName@domain and sanizites it to a format used by jitsi
+func sanitizeConferenceName(conference string) string {
+	parts := strings.Split(conference, "@")
+	room := strings.ToLower(strings.Join(parts[0:len(parts)-1], "@"))
+	return url.QueryEscape(room) + "@" + parts[len(parts)-1]
 }
 
 func getConfName(db *sql.DB, confId int) string {
@@ -204,9 +215,7 @@ func cleanupOldEntries() {
 	}
 }
 
-func main() {
-	flag.Parse()
-
+func initDatabase() error {
 	sqlDb, err := sql.Open("sqlite3", *sqlitePath)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -232,6 +241,15 @@ func main() {
 		}).Fatal("main: Create db statement (Execute)")
 	}
 	sqlDb.Close()
+	return err
+}
+
+func main() {
+	flag.Parse()
+
+	if err := initDatabase(); err != nil {
+		log.WithField("error", err).Fatal("cannot initialize database")
+	}
 
 	go cleanupOldEntries()
 

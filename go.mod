@@ -7,4 +7,9 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 )
 
-require golang.org/x/sys v0.16.0 // indirect
+require github.com/google/go-cmp v0.5.9 // indirect
+
+require (
+	golang.org/x/sys v0.21.0 // indirect
+	gotest.tools/v3 v3.5.1
+)
