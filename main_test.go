@@ -2,7 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -33,6 +35,14 @@ func TestMain(m *testing.M) {
 	os.Exit(exitCode)
 }
 
+func TestGetRandomConfID(t *testing.T) {
+	for i := 0; i < 300; i++ {
+		result := getConfId(sqlDB, fmt.Sprintf("TestGetRandomConfID%d", i))
+		assert.Check(t, result > int(math.Pow10(*xDigitIDs-1)))
+		assert.Check(t, result < int(math.Pow10(*xDigitIDs)))
+	}
+}
+
 func TestMapperJustConfName(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/conferenceMapper?conference="+confName, nil)
 	assert.NilError(t, err)
@@ -49,7 +59,7 @@ func TestMapperJustConfName(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 
 	assert.Assert(t, rec.Code == http.StatusOK)
-	assert.Equal(t, rec.Body.String(), `{"id":"0012553","conference":"`+confNameSanizied+`"}`+"\n")
+	assert.Equal(t, rec.Body.String(), `{"id":12553,"conference":"`+confNameSanizied+`"}`+"\n")
 }
 
 func TestMapperUnknownConfID(t *testing.T) {
@@ -61,7 +71,7 @@ func TestMapperUnknownConfID(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 
 	assert.Assert(t, rec.Code == http.StatusOK)
-	assert.Equal(t, rec.Body.String(), `{"id":"0001234","conference":"false"}`+"\n")
+	assert.Equal(t, rec.Body.String(), `{"id":1234,"conference":"false"}`+"\n")
 }
 
 func TestMapperConfIDAndConfName(t *testing.T) {
@@ -73,5 +83,5 @@ func TestMapperConfIDAndConfName(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 
 	assert.Assert(t, rec.Code == http.StatusOK)
-	assert.Equal(t, rec.Body.String(), `{"id":"0001234","conference":"false"}`+"\n")
+	assert.Equal(t, rec.Body.String(), `{"id":1234,"conference":"false"}`+"\n")
 }

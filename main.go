@@ -25,15 +25,8 @@ var (
 
 // var sqlDb *sql.DB
 type ConferenceMapperResult struct {
-	ConferenceID   string `json:"id"` // PIN with potentially leading zeroes
-	conferenceID   int    `json:"-"`  // just for internal use
+	ConferenceID   int    `json:"id"` // PIN with potentially leading zeroes
 	ConferenceName string `json:"conference"`
-}
-
-func (r *ConferenceMapperResult) SetID(id int) {
-	r.conferenceID = id
-	// store string of confID with leading zeroes
-	r.ConferenceID = fmt.Sprintf("%0"+strconv.Itoa(*xDigitIDs)+"d", id)
 }
 
 func mapper(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +47,7 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 			}).Error("Parsing of confID failed")
 			return
 		}
-		result.SetID(confId)
+		result.ConferenceID = confId
 	}
 
 	log.WithFields(log.Fields{
@@ -71,8 +64,8 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 	}
 	defer sqlDb.Close()
 
-	if result.ConferenceID != "" {
-		result.ConferenceName = strings.ToLower(getConfName(sqlDb, result.conferenceID))
+	if result.ConferenceID != 0 {
+		result.ConferenceName = strings.ToLower(getConfName(sqlDb, result.ConferenceID))
 		log.WithFields(log.Fields{
 			"confID":   result.ConferenceID,
 			"confName": result.ConferenceName,
@@ -82,10 +75,10 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 	// only set new conference name if not set via conf id
 	if conference != "" && result.ConferenceName == "" {
 		result.ConferenceName = sanitizeConferenceName(conference)
-		result.SetID(getConfId(sqlDb, result.ConferenceName))
+		result.ConferenceID = getConfId(sqlDb, result.ConferenceName)
 	}
 
-	updateConferenceUsage(sqlDb, result.conferenceID)
+	updateConferenceUsage(sqlDb, result.ConferenceID)
 }
 
 func sendResponse(w http.ResponseWriter, result *ConferenceMapperResult) {
