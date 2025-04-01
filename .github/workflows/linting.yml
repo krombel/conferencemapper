@@ -34,7 +34,7 @@ jobs: # Docs: <https://git.io/JvxXE>
         run: go test *.go -v
 
       - name: Run linter
-        uses: golangci/golangci-lint-action@v6.5.0 # Action page: <https://github.com/golangci/golangci-lint-action>
+        uses: golangci/golangci-lint-action@v7.0.0 # Action page: <https://github.com/golangci/golangci-lint-action>
         with:
           only-new-issues: false # show only new issues if it's a pull request
           args: --timeout 4m # the default of 1m didn't suffice occasionally
