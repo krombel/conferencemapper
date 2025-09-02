@@ -12,7 +12,7 @@ jobs: # Docs: <https://git.io/JvxXE>
     name: Gitleaks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: {fetch-depth: 0}
 
       - uses: gitleaks/gitleaks-action@v2 # Action page: <https://github.com/gitleaks/gitleaks-action>
@@ -23,7 +23,7 @@ jobs: # Docs: <https://git.io/JvxXE>
     name: Golang-CI (lint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: {fetch-depth: 0}
       - uses: actions/setup-go@v5
         with:
