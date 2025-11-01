@@ -11,7 +11,7 @@ COPY ./main.go ./main.go
 RUN go build -o main .
 
 # final image
-FROM alpine:3.22.1
+FROM alpine:3.22.2
 
 LABEL org.opencontainers.image.source=https://github.com/krombel/conferencemapper
 LABEL org.opencontainers.image.description="Jitsi Conferencemapper"
