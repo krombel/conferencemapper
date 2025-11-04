@@ -5,15 +5,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log/slog"
 	"math"
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -41,35 +41,44 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 	if paramID != "" {
 		confId, err := strconv.Atoi(paramID)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"paramID": paramID,
-				"confID":  confId,
-			}).Error("Parsing of confID failed")
+			slog.With(
+				"paramID", paramID,
+				"confID", confId,
+				"err", err,
+			).Error("Parsing of confID failed")
 			return
 		}
 		result.ConferenceID = confId
 	}
 
-	log.WithFields(log.Fields{
-		"conference":   conferenceEscaped,
-		"ConferenceID": result.ConferenceID,
-	}).Info("mapper(conference, id)")
+	slog.With(
+		"conference", conferenceEscaped,
+		"ConferenceID", result.ConferenceID,
+	).Info("mapper(conference, id)")
 
 	sqlDb, err := sql.Open("sqlite3", *sqlitePath)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Error("mapper: Connect to database")
+		slog.With(
+			"err", err,
+		).Error("mapper: Connect to database")
 		return
 	}
-	defer sqlDb.Close()
+	defer func() {
+		err := sqlDb.Close()
+		if err != nil {
+			slog.With(
+				"err", err,
+			).Error("mapper: Close database")
+			return
+		}
+	}()
 
 	if result.ConferenceID != 0 {
 		result.ConferenceName = strings.ToLower(getConfName(sqlDb, result.ConferenceID))
-		log.WithFields(log.Fields{
-			"confID":   result.ConferenceID,
-			"confName": result.ConferenceName,
-		}).Debug("Parsed Conf name")
+		slog.With(
+			"confID", result.ConferenceID,
+			"confName", result.ConferenceName,
+		).Debug("Parsed Conf name")
 	}
 
 	// only set new conference name if not set via conf id
@@ -83,21 +92,21 @@ func mapper(w http.ResponseWriter, r *http.Request) {
 
 func sendResponse(w http.ResponseWriter, result *ConferenceMapperResult) {
 	if err := json.NewEncoder(w).Encode(&result); err != nil {
-		log.WithFields(log.Fields{
-			"result": result,
-			"error":  err,
-		}).Error("Encoding of response failed")
+		slog.With(
+			"result", result,
+			"error", err,
+		).Error("Encoding of response failed")
 	}
 
-	log.WithFields(log.Fields{
-		"result": *result,
-	}).Info("sendResponse()")
+	slog.With(
+		"result", *result,
+	).Info("sendResponse()")
 }
 
 func getConfId(db *sql.DB, confName string) int {
-	log.WithFields(log.Fields{
-		"confName": confName,
-	}).Debug("getConfId(confName)")
+	slog.With(
+		"confName", confName,
+	).Debug("getConfId(confName)")
 	var result int
 	row := db.QueryRow("SELECT conferenceId FROM conferences WHERE conferenceName = ?", confName)
 	if err := row.Scan(&result); err != nil {
@@ -105,20 +114,20 @@ func getConfId(db *sql.DB, confName string) int {
 			// generate new ID and return that
 			for {
 				result = rand.Intn(int(math.Pow10(*xDigitIDs))-1-int(math.Pow10(*xDigitIDs-1))) + int(math.Pow10(*xDigitIDs-1))
-				log.WithFields(log.Fields{
-					"confName": confName,
-					"confId":   result,
-				}).Debug("getConfId(confName) store random confID")
+				slog.With(
+					"confName", confName,
+					"confId", result,
+				).Debug("getConfId(confName) store random confID")
 				if insertConference(db, confName, result) {
 					// insertion worked; return it
 					return result
 				}
 			}
 		}
-		log.WithFields(log.Fields{
-			"confName": confName,
-			"err":      err,
-		}).Error("Could not get data conf id from db")
+		slog.With(
+			"confName", confName,
+			"err", err,
+		).Error("Could not get data conf id from db")
 		return -1
 	}
 	return result
@@ -132,16 +141,16 @@ func sanitizeConferenceName(conference string) string {
 }
 
 func getConfName(db *sql.DB, confId int) string {
-	log.WithFields(log.Fields{
-		"confId": confId,
-	}).Debug("getConfName(confId)")
+	slog.With(
+		"confId", confId,
+	).Debug("getConfName(confId)")
 	var result string
 	row := db.QueryRow("SELECT conferenceName FROM conferences WHERE conferenceId = ?", confId)
 	if err := row.Scan(&result); err != nil {
-		log.WithFields(log.Fields{
-			"confId": confId,
-			"err":    err,
-		}).Error("Could not query conf name from db")
+		slog.With(
+			"confId", confId,
+			"err", err,
+		).Error("Could not query conf name from db")
 		return "false"
 	}
 	return result
@@ -149,26 +158,26 @@ func getConfName(db *sql.DB, confId int) string {
 
 // returns true if insertion completed
 func insertConference(db *sql.DB, confName string, confId int) bool {
-	log.WithFields(log.Fields{
-		"confName": confName,
-		"confId":   confId,
-	}).Debug("insertConference(confName,confId)")
+	slog.With(
+		"confName", confName,
+		"confId", confId,
+	).Debug("insertConference(confName,confId)")
 	stmt, err := db.Prepare("INSERT INTO conferences(conferenceName, conferenceId) VALUES (?, ?)")
 	if err != nil {
-		log.WithFields(log.Fields{
-			"confName": confName,
-			"confId":   confId,
-			"err":      err,
-		}).Error("Could not insert conf to db")
+		slog.With(
+			"confName", confName,
+			"confId", confId,
+			"err", err,
+		).Error("Could not insert conf to db")
 		return false
 	}
 	_, err = stmt.Exec(confName, confId)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"confName": confName,
-			"confId":   confId,
-			"err":      err,
-		}).Error("Could not insert conf to db (exec stmt)")
+		slog.With(
+			"confName", confName,
+			"confId", confId,
+			"err", err,
+		).Error("Could not insert conf to db (exec stmt)")
 		return false
 	}
 	return true
@@ -176,44 +185,51 @@ func insertConference(db *sql.DB, confName string, confId int) bool {
 
 func updateConferenceUsage(db *sql.DB, confId int) bool {
 	_, err := db.Exec("UPDATE conferences set lastUsed = (strftime('%s','now')) WHERE conferenceId = ?", confId)
-	log.WithFields(log.Fields{
-		"confId": confId,
-		"err":    err,
-	}).Debug("updateConferenceUsage()")
+	slog.With(
+		"confId", confId,
+		"err", err,
+	).Debug("updateConferenceUsage()")
 	return err == nil
 }
 
 func cleanupOldEntries() {
 	for {
 		time.Sleep(24 * time.Hour)
-		log.Info("Run cleanup of old entries")
+		slog.Info("Run cleanup of old entries")
 
 		sqlDb, err := sql.Open("sqlite3", *sqlitePath)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"err": err,
-			}).Error("cleanupOldEntries: Connect to database")
-			return
+			slog.With(
+				"err", err,
+			).Error("cleanupOldEntries: Connect to database")
+			continue
 		}
 
 		oldTime := time.Now().Add(-24 * time.Hour * 365).Unix()
 		_, err = sqlDb.Exec("DELETE FROM conferences WHERE lastUsed < ?", oldTime)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"err": err,
-			}).Error("cleanupOldEntries: Run Cleanup")
-			return
+			slog.With(
+				"err", err,
+			).Error("cleanupOldEntries: Run Cleanup")
+			continue
 		}
-		sqlDb.Close()
+		err = sqlDb.Close()
+		if err != nil {
+			slog.With(
+				"err", err,
+			).Error("cleanupOldEntries: Close database")
+			continue
+		}
 	}
 }
 
 func initDatabase() error {
 	sqlDb, err := sql.Open("sqlite3", *sqlitePath)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Fatal("main: Open sql db")
+		slog.With(
+			"err", err,
+		).Error("main: Open sql db")
+		return err
 	}
 
 	stmt, err := sqlDb.Prepare(`CREATE TABLE IF NOT EXISTS conferences (
@@ -223,17 +239,25 @@ func initDatabase() error {
 		"lastUsed" INTEGER(4) NOT NULL DEFAULT (strftime('%s','now'))
 	)`)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Fatal("main: Create db statement (Prepare)")
+		slog.With(
+			"err", err,
+		).Error("main: Create db statement (Prepare)")
+		return err
 	}
 	_, err = stmt.Exec()
 	if err != nil {
-		log.WithFields(log.Fields{
-			"err": err,
-		}).Fatal("main: Create db statement (Execute)")
+		slog.With(
+			"err", err,
+		).Error("main: Create db statement (Execute)")
+		return err
 	}
-	sqlDb.Close()
+	err = sqlDb.Close()
+	if err != nil {
+		slog.With(
+			"err", err,
+		).Error("main: Close db")
+		return err
+	}
 	return err
 }
 
@@ -241,17 +265,23 @@ func main() {
 	flag.Parse()
 
 	if err := initDatabase(); err != nil {
-		log.WithField("error", err).Fatal("cannot initialize database")
+		slog.With("error", err).Error("cannot initialize database")
+		os.Exit(1)
 	}
 
 	go cleanupOldEntries()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Conference Mapper (for jitsi) is running")
+		_, err := fmt.Fprintf(w, "Conference Mapper (for jitsi) is running")
+		if err != nil {
+			slog.With(
+				"err", err,
+			).Error("Root handler failed")
+		}
 	})
 
 	http.HandleFunc("/conferenceMapper", mapper)
 
-	log.Info("Listen on 8001")
-	log.Fatal(http.ListenAndServe(":8001", nil))
+	slog.Info("Listen on 8001")
+	slog.Error("closed", "err", http.ListenAndServe(":8001", nil))
 }

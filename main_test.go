@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -20,18 +20,26 @@ var sqlDB *sql.DB
 func TestMain(m *testing.M) {
 	var err error
 	if err := initDatabase(); err != nil {
-		log.Fatal("cannot initialize database")
+		slog.Error("cannot initialize database", "err", err)
+		os.Exit(1)
 	}
 	sqlDB, err = sql.Open("sqlite3", *sqlitePath)
 	if err != nil {
-		log.Fatal("cannot open database")
+		slog.Error("cannot open database", "err", err)
+		os.Exit(1)
 	}
 
 	exitCode := m.Run()
 
-	sqlDB.Close()
+	err = sqlDB.Close()
+	if err != nil {
+		slog.Error("cannot close database", "err", err)
+	}
 	sqlDB = nil
-	os.Remove("conferencemapper.db")
+	err = os.Remove("conferencemapper.db")
+	if err != nil {
+		slog.Error("cannot remove database file", "err", err)
+	}
 	os.Exit(exitCode)
 }
 
