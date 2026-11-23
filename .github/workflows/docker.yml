@@ -5,6 +5,11 @@ on:
       - master
     tags:
       - 'v*.*.*'
+  # Dependabot PRs are merged with GITHUB_TOKEN, which does not trigger the
+  # push event: rebuild weekly to pick up base image and dependency updates.
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
